@@ -1,53 +1,70 @@
 function Results({ data }) {
-    if (!data) return null;
+    if (!data || !data.all_results) {
+        return null;
+    }
+
+    // Déterminer le statut final selon les résultats des modèles
+    // Exemple simple : si au moins un modèle prédit "Vulnerable" (1), on considère le contrat vulnérable
+    const finalStatus = Object.values(data.all_results).some(
+        res => res.prediction === 1
+    )
+        ? "Vulnerable"
+        : "Safe";
 
     return (
         <div className="card">
             <h3>📊 Analysis Results</h3>
 
+            {/* Best model */}
             <p>
-                <strong>Model:</strong> {data.modelUsed}
+                <strong>Best Model:</strong> {data.best_model}
+            </p>
+            <p>
+                <strong>Best Score:</strong> {data.best_score.toFixed(2)}
             </p>
 
+            {/* Status basé sur les résultats des modèles */}
             <p>
                 <strong>Status:</strong>{" "}
                 <span
-                    className={`badge ${data.prediction === "Safe" ? "safe" : "vulnerable"
-                        }`}
+                    className="badge"
+                    style={{
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        color: "white",
+                        backgroundColor: finalStatus === "Safe" ? "green" : "red",
+                    }}
                 >
-                    {data.prediction}
+                    {finalStatus}
                 </span>
             </p>
 
-            <h4>Model Score</h4>
+            {/* All models results */}
+            <h4>Models Comparison</h4>
             <div className="score-grid">
-                {Object.entries(data.score).map(([k, v]) => (
-                    <div className="score-item" key={k}>
-                        {k}
+                {Object.entries(data.all_results).map(([model, res]) => (
+                    <div className="score-item" key={model}>
+                        <strong>{model}</strong>
                         <br />
-                        {v}
+                        Prediction: {res.prediction === 1 ? "Vulnerable" : "Safe"}
+                        <br />
+                        Score: {res.score.toFixed(2)}
                     </div>
                 ))}
             </div>
 
-            <h4>Detected Vulnerabilities</h4>
-            <ul className="list">
-                {data.detectedVulnerabilities.map((v, i) => (
-                    <li key={i}>{v}</li>
-                ))}
-            </ul>
-
+            {/* Blockchain */}
             <h4>Blockchain Trace</h4>
             <p>
-                <strong>Hash:</strong> {data.blockchainTrace.hash}
-            </p>
-            <p>
-                <strong>Transaction:</strong> {data.blockchainTrace.txLink}
+                <a href={data.blockchain_link} target="_blank" rel="noreferrer">
+                    View transaction
+                </a>
             </p>
 
+            {/* Contract code */}
             <h4>Smart Contract Code</h4>
             <div className="code-box">
-                <pre>{data.sourceCode}</pre>
+                <pre>{data.contract_code}</pre>
             </div>
         </div>
     );
