@@ -4,6 +4,10 @@ import joblib
 import hashlib
 import numpy as np
 from utils.parser import extract_features
+from llm_tester import LLMSecurityTester
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 app.add_middleware(
@@ -23,7 +27,8 @@ logistic = joblib.load("models/logistic.pkl")
 rf = joblib.load("models/random_forest.pkl")
 xgb = joblib.load("models/xgboost.pkl")
 
-
+API_KEY = os.getenv("MISTRAL_API_KEY")  # à définir dans ton environnement
+llm_tester = LLMSecurityTester(API_KEY)
 @app.post("/analyze")
 async def analyze_contract(file: UploadFile):
     code = (await file.read()).decode("utf-8")
@@ -47,7 +52,7 @@ async def analyze_contract(file: UploadFile):
             "score": float(xgb.predict_proba(X)[0][1])
         }
     }
-
+    llm_result = llm_tester.analyze_contract(code)
     # 3. Sélection du meilleur modèle
     best_model = max(results.items(), key=lambda x: x[1]["score"])
 
@@ -61,5 +66,6 @@ async def analyze_contract(file: UploadFile):
         "all_results": results,
         "best_model": best_model[0],
         "best_score": best_model[1]["score"],
+        "llm_result": llm_result,
         "blockchain_link": f"https://etherscan.io/tx/{report_hash}"
     }
